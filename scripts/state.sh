@@ -20,6 +20,20 @@ state_write() {
 
 state_remove() { rm -f "$STATE_DIR/$(_sanitize_pane_id "$1")"; }
 
+# Kill a pane ONLY when it is still marked as a sidebar right now AND is not the
+# sole pane in its window. A correctly-marked sidebar is always a split beside a
+# workspace pane, so a sole-pane match means the id is wrong (the old pane-
+# misidentification bug) — refusing the kill then prevents collapsing a window
+# or a whole session. Returns 0 if it killed the pane, 1 if it refused.
+safe_kill_sidebar_pane() {
+  local pane="$1"; [ -n "$pane" ] || return 1
+  local marked; marked=$(tmux display-message -p -t "$pane" '#{@ai_sidebar}' 2>/dev/null) || return 1
+  [ "$marked" = "1" ] || return 1
+  local count; count=$(tmux list-panes -t "$pane" -F '#{pane_id}' 2>/dev/null | grep -c .)
+  [ "${count:-0}" -gt 1 ] || return 1
+  tmux kill-pane -t "$pane" 2>/dev/null
+}
+
 state_prune() {
   [ -d "$STATE_DIR" ] || return 0
   # Without an ambient tmux server we cannot enumerate live panes; pruning then

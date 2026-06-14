@@ -43,6 +43,33 @@ else
   # prune must KEEP a live pane and DROP a dead one — but state_prune queries the AMBIENT tmux, not -L socket.
   # So this is a best-effort note rather than a hard assertion in v1.
   echo "NOTE: live-server present; prune uses ambient socket (documented limitation)."
+
+  # Regression: a sidebar spawned (un-focused, -d) into ANOTHER session must
+  # identify its OWN pane via $TMUX_PANE — NOT the active workspace pane that
+  # `display-message` would return. This is the bug that made jumps kill a
+  # workspace pane and collapse sessions.
+  ID_FILE="$INT_DIR/id"
+  RECORD="$INT_DIR/record.sh"
+  printf '#!/usr/bin/env bash\nprintf %%s "$TMUX_PANE" > "%s"\nsleep 5\n' "$ID_FILE" > "$RECORD"; chmod +x "$RECORD"
+  REAL_NEW=$(tmux -L "$SOCKET" split-window -hb -d -t "$SB" -P -F '#{pane_id}' "$RECORD")
+  sleep 1
+  assert_eq "sidebar self-identifies via TMUX_PANE" "$REAL_NEW" "$(cat "$ID_FILE" 2>/dev/null)"
+  WRONG=$(tmux -L "$SOCKET" display-message -t "$SB" -p '#{pane_id}')
+  if [ "$WRONG" != "$REAL_NEW" ]; then echo "PASS: display-message mis-identifies the pane (original bug reproduced)"; ((PASS_COUNT++)); else echo "NOTE: display-message coincidentally matched this run"; fi
+
+  # safe_kill_sidebar_pane guards: route the helper's bare `tmux` calls at the
+  # test server, then restore the global wrapper.
+  tmux() { command tmux -L "$SOCKET" "$@"; }
+  KP=$(command tmux -L "$SOCKET" list-panes -t "$SA" -F '#{pane_id}' | head -1)
+  if safe_kill_sidebar_pane "$KP"; then echo "FAIL: killed an unmarked sole pane"; ((FAIL_COUNT++)); else echo "PASS: refuses unmarked pane"; ((PASS_COUNT++)); fi
+  command tmux -L "$SOCKET" set-option -p -t "$KP" "@ai_sidebar" "1"
+  if safe_kill_sidebar_pane "$KP"; then echo "FAIL: killed a sole marked pane (would collapse window/session)"; ((FAIL_COUNT++)); else echo "PASS: refuses sole pane even when marked"; ((PASS_COUNT++)); fi
+  SIDE=$(command tmux -L "$SOCKET" split-window -d -t "$KP" -P -F '#{pane_id}')
+  command tmux -L "$SOCKET" set-option -p -t "$SIDE" "@ai_sidebar" "1"
+  if safe_kill_sidebar_pane "$SIDE"; then echo "PASS: kills a marked, non-sole sidebar"; ((PASS_COUNT++)); else echo "FAIL: refused a valid sidebar kill"; ((FAIL_COUNT++)); fi
+  assert_eq "workspace pane survives sidebar kill" "1" "$(command tmux -L "$SOCKET" list-panes -t "$KP" -F x 2>/dev/null | grep -c x)"
+  unset -f tmux
+
   tmux -L "$SOCKET" kill-server 2>/dev/null
 fi
 

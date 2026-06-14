@@ -8,7 +8,7 @@ FG_WHITE='\033[38;5;255m'; FG_PEACH='\033[38;5;215m'; FG_OVERLAY='\033[38;5;238m
 HOME_POS='\033[H'      # cursor to top-left (no full-screen wipe)
 CLEAR_BELOW='\033[0J'  # clear from cursor to end of screen
 
-MY_PANE=$(tmux display-message -p '#{pane_id}')
+MY_PANE="${1:-${TMUX_PANE:-$(tmux display-message -p '#{pane_id}')}}"
 tmux set-option -p -t "$MY_PANE" "@ai_sidebar" "1"
 printf '\033]2;ai-sidebar\007'
 
@@ -23,7 +23,7 @@ SESSION_LIST=()
 # anchored at home with a clear-below — no full-screen wipe, so no flicker.
 render() {
   local current_session sessions agg idx sess st dot color flag buf
-  current_session=$(tmux display-message -p '#{session_name}')
+  current_session=$(tmux display-message -p -t "$MY_PANE" '#{session_name}')
   sessions=$(tmux list-sessions -F '#{session_name}' 2>/dev/null)
   agg=$(state_aggregate "")
   buf="${BOLD}${FG_PEACH}  AI Sessions${RESET}\n"
@@ -54,7 +54,7 @@ render() {
 # changes, so an idle sidebar sits perfectly still (no per-second twitch).
 compute_sig() {
   printf '%s|%s|%s' \
-    "$(tmux display-message -p '#{session_name}' 2>/dev/null)" \
+    "$(tmux display-message -p -t "$MY_PANE" '#{session_name}' 2>/dev/null)" \
     "$(tmux list-sessions -F '#{session_name}' 2>/dev/null)" \
     "$(state_aggregate '')"
 }
@@ -71,8 +71,8 @@ while true; do
   read -t 1 -rsn1 key; rc=$?
   if [ $rc -eq 0 ]; then
     case "$key" in
-      q|Q) restore_cursor; tmux kill-pane -t "$MY_PANE"; exit 0 ;;
-      $'\x1b') read -t 1 -rsn10 _ 2>/dev/null; restore_cursor; tmux kill-pane -t "$MY_PANE"; exit 0 ;;
+      q|Q) restore_cursor; safe_kill_sidebar_pane "$MY_PANE"; exit 0 ;;
+      $'\x1b') read -t 1 -rsn10 _ 2>/dev/null; restore_cursor; safe_kill_sidebar_pane "$MY_PANE"; exit 0 ;;
       [1-9])
         target_idx=$((key-1))
         if [ "$target_idx" -lt "${#SESSION_LIST[@]}" ]; then
