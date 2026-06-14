@@ -79,8 +79,8 @@ flowchart LR
 
 ## Requirements
 
-- tmux ≥ 3.0
-- A POSIX shell (bash/zsh)
+- tmux ≥ 3.2 (uses pane user-options in formats and `split-window -hb`)
+- `bash` ≥ 3.2 (the macOS system bash works — no bash 4 required) and `awk`
 - [Claude Code](https://docs.claude.com/en/docs/claude-code) (only for the status feature)
 - `jq` — optional, used by the hook installer; falls back to a manual snippet if absent
 

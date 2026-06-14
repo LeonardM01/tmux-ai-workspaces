@@ -1,0 +1,9 @@
+{
+  "_comment": "Add these entries to the matching arrays in ~/.claude/settings.json under .hooks. Replace PLUGIN_PATH with the absolute path to your tmux-ai-workspaces directory.",
+  "hooks": {
+    "UserPromptSubmit": [ { "matcher": ".*", "hooks": [ { "type": "command", "command": "PLUGIN_PATH/scripts/claude-hook.sh busy" } ] } ],
+    "Stop": [ { "matcher": ".*", "hooks": [ { "type": "command", "command": "PLUGIN_PATH/scripts/claude-hook.sh done" } ] } ],
+    "Notification": [ { "matcher": ".*", "hooks": [ { "type": "command", "command": "PLUGIN_PATH/scripts/claude-hook.sh wait" } ] } ],
+    "SessionEnd": [ { "matcher": ".*", "hooks": [ { "type": "command", "command": "PLUGIN_PATH/scripts/claude-hook.sh remove" } ] } ]
+  }
+}
