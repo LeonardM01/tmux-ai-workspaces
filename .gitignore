@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# Local dev / agent tooling (not part of the published plugin)
+.claude/
+.mcp.json
+CLAUDE.md
+
+# Runtime state (created at use-time)
+tmux-ai/
+*.bak
