@@ -15,7 +15,12 @@ state_write() {
   epoch=$(date +%s)
   mkdir -p "$STATE_DIR"
   local fname="$STATE_DIR/$(_sanitize_pane_id "$pane_id")"
-  printf '%s\t%s\t%s\n' "$session" "$state" "$epoch" > "$fname"
+  # Write atomically: a reader (status bar, aggregate) must never observe the
+  # truncate-then-write window of a plain `>`. Temp files are dotfiles, so the
+  # "$STATE_DIR"/p* globs elsewhere never pick them up.
+  local tmp; tmp=$(mktemp "$STATE_DIR/.tmp.XXXXXX") || return 1
+  printf '%s\t%s\t%s\n' "$session" "$state" "$epoch" > "$tmp"
+  mv -f "$tmp" "$fname"
 }
 
 state_remove() { rm -f "$STATE_DIR/$(_sanitize_pane_id "$1")"; }

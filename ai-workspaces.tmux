@@ -13,7 +13,7 @@ existing_right=$(tmux show-option -gv "status-right" 2>/dev/null)
 case "$existing_right" in
   *status-alert.sh*) : ;;
   *)
-    new_right="#($CURRENT_DIR/scripts/status-alert.sh)${existing_right:+#[bg=#{@thm_bg},fg=#{@thm_overlay_0}]│}${existing_right}"
+    new_right="#($CURRENT_DIR/scripts/status-alert.sh #{client_session})${existing_right:+#[bg=#{@thm_bg},fg=#{@thm_overlay_0}]│}${existing_right}"
     tmux set-option -g status-right "$new_right"
     ;;
 esac
@@ -25,5 +25,5 @@ fi
 
 # Idempotent: only register the focus-clear hook if it isn't already there.
 if ! tmux show-hooks -g 2>/dev/null | grep -q "clear-state.sh"; then
-  tmux set-hook -ga client-session-changed "run-shell '$CURRENT_DIR/scripts/clear-state.sh'"
+  tmux set-hook -ga client-session-changed "run-shell '$CURRENT_DIR/scripts/clear-state.sh #{client_session}'"
 fi

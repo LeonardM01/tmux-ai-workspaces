@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/state.sh"
-CURRENT_SESSION=$(tmux display-message -p '#{session_name}' 2>/dev/null)
+# status-right is rendered per client, so the session to exclude is passed in as
+# #{client_session}. Avoid the ambiguous no-target display-message except as a
+# fallback (empty arg on older installs, or an unexpanded format literal).
+CURRENT_SESSION="${1:-}"
+case "$CURRENT_SESSION" in
+  ''|*'#{'*) CURRENT_SESSION=$(tmux display-message -p '#{session_name}' 2>/dev/null) ;;
+esac
 wait_count=0; done_count=0; busy_count=0
 while IFS=$'\t' read -r sess st; do
   [ -z "$sess" ] && continue
