@@ -38,7 +38,8 @@ working in some of them, two things are annoying:
 ## Features
 
 - **Left sidebar** (`prefix + Tab`) — a narrow, live pane listing every running session.
-  Jump by number; it auto-closes on selection. Non-invasive: it's only there when you ask.
+  Jump by number; the sidebar **follows you** into the selected session and stays open
+  until you close it with `q` (or `prefix + Tab`). Non-invasive: only there when you ask.
 - **Status dots** per session: `○` busy · `●` done (green) · `●` + `⚑` waiting (yellow).
 - **Always-visible alert** in the status bar (e.g. `⚑2 ●1`) so you know to switch *without*
   opening the sidebar.
