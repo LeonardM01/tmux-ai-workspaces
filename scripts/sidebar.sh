@@ -8,7 +8,15 @@ FG_WHITE='\033[38;5;255m'; FG_PEACH='\033[38;5;215m'; FG_OVERLAY='\033[38;5;238m
 HOME_POS='\033[H'      # cursor to top-left (no full-screen wipe)
 CLEAR_BELOW='\033[0J'  # clear from cursor to end of screen
 
-MY_PANE="${1:-${TMUX_PANE:-$(tmux display-message -p '#{pane_id}')}}"
+# Identify our own pane from $TMUX_PANE (set by tmux for every pane) or the
+# explicit arg from jump.sh. Do NOT fall back to `display-message -p` — that
+# returns the session's ACTIVE pane, which is the exact bug that made the sidebar
+# mark and later kill a workspace pane. If we can't know our pane, refuse to run.
+MY_PANE="${1:-${TMUX_PANE:-}}"
+if [ -z "$MY_PANE" ]; then
+  echo "ai-sidebar: cannot determine own pane id (TMUX_PANE unset); refusing to start" >&2
+  exit 1
+fi
 tmux set-option -p -t "$MY_PANE" "@ai_sidebar" "1"
 printf '\033]2;ai-sidebar\007'
 
@@ -68,11 +76,16 @@ while true; do
     prev_sig="$sig"
   fi
   key=""
+  # `read -t` only accepts whole seconds on bash 3.2 (macOS system bash), so 1s
+  # is the floor — do not "optimize" to a fractional timeout, it breaks there.
   read -t 1 -rsn1 key; rc=$?
   if [ $rc -eq 0 ]; then
     case "$key" in
       q|Q) restore_cursor; safe_kill_sidebar_pane "$MY_PANE"; exit 0 ;;
-      $'\x1b') read -t 1 -rsn10 _ 2>/dev/null; restore_cursor; safe_kill_sidebar_pane "$MY_PANE"; exit 0 ;;
+      # Bare Esc closes. No need to drain the rest of an escape sequence first —
+      # we exit and the pane is killed regardless, so draining only added a 1s
+      # stall on a lone Esc (bash 3.2 can't time out faster).
+      $'\x1b') restore_cursor; safe_kill_sidebar_pane "$MY_PANE"; exit 0 ;;
       [1-9])
         target_idx=$((key-1))
         if [ "$target_idx" -lt "${#SESSION_LIST[@]}" ]; then

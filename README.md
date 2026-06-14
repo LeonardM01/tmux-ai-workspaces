@@ -8,7 +8,7 @@
 
 ![status](https://img.shields.io/badge/status-v0.1%20·%20in%20active%20development-f9e2af?style=flat-square)
 ![shell](https://img.shields.io/badge/built%20with-pure%20shell-a6e3a1?style=flat-square)
-![tmux](https://img.shields.io/badge/tmux-%E2%89%A5%203.0-89b4fa?style=flat-square)
+![tmux](https://img.shields.io/badge/tmux-%E2%89%A5%203.2-89b4fa?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-cba6f7?style=flat-square)
 
 </div>

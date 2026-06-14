@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 _resolve_state_dir() {
-  if [ -n "$TMUX" ]; then
+  if [ -n "${TMUX:-}" ]; then
     local opt; opt=$(tmux show-option -gqv "@ai_state_dir" 2>/dev/null)
     if [ -n "$opt" ]; then echo "$opt"; return; fi
   fi
@@ -8,11 +8,16 @@ _resolve_state_dir() {
 }
 STATE_DIR="$(_resolve_state_dir)"
 
+# Pane ids look like "%5"; '%' is awkward in a filename, so map it to 'p' for the
+# on-disk name. state_prune reverses this as "%${fname#p}" — keep the two in sync.
 _sanitize_pane_id() { echo "${1//%/p}"; }
 
 state_write() {
   local pane_id="$1" session="$2" state="$3" epoch
   epoch=$(date +%s)
+  # The record is TAB-delimited; a session name may legally contain a tab or
+  # newline, which would corrupt every reader. Strip them to a space on write.
+  session=${session//$'\t'/ }; session=${session//$'\n'/ }
   mkdir -p "$STATE_DIR"
   local fname="$STATE_DIR/$(_sanitize_pane_id "$pane_id")"
   # Write atomically: a reader (status bar, aggregate) must never observe the
@@ -43,12 +48,17 @@ state_prune() {
   [ -d "$STATE_DIR" ] || return 0
   # Without an ambient tmux server we cannot enumerate live panes; pruning then
   # would delete ALL state. Skip pruning entirely when not inside tmux.
-  [ -n "$TMUX" ] || return 0
-  local live_panes; live_panes=$(tmux list-panes -a -F '#{pane_id}' 2>/dev/null)
+  [ -n "${TMUX:-}" ] || return 0
+  local live_panes nl=$'\n'; live_panes=$(tmux list-panes -a -F '#{pane_id}' 2>/dev/null)
   for fpath in "$STATE_DIR"/p*; do
     [ -f "$fpath" ] || continue
     local fname="${fpath##*/}"; local pane_id="%${fname#p}"
-    if ! echo "$live_panes" | grep -qxF "$pane_id"; then rm -f "$fpath"; fi
+    # Substring match against the once-built newline-wrapped list — no grep
+    # subshell per file. Pane ids (%N) contain no glob metacharacters.
+    case "$nl$live_panes$nl" in
+      *"$nl$pane_id$nl"*) : ;;
+      *) rm -f "$fpath" ;;
+    esac
   done
 }
 

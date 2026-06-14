@@ -20,8 +20,14 @@ done
 # we only retire the old sidebar once the replacement actually exists.
 NEW_PANE=$(tmux split-window -hb -d -l "$WIDTH" -t "$TARGET_SESSION" -P -F '#{pane_id}' "$SCRIPT_DIR/sidebar.sh")
 
-# Move the client to the target session.
-tmux switch-client -t "$TARGET_SESSION"
+# Move the client to the target session. (No -c client target: single-client use
+# is assumed; with multiple clients this switches the ambiguous "current" one.)
+# If the target vanished between keypress and now, switch fails — bail without
+# touching the old sidebar so the user keeps a working one where they are.
+if ! tmux switch-client -t "$TARGET_SESSION" 2>/dev/null; then
+  [ -n "$NEW_PANE" ] && safe_kill_sidebar_pane "$NEW_PANE"
+  exit 1
+fi
 
 # Finally drop the old sidebar pane in the previous session — but only once the
 # replacement exists, and only through the guarded kill so we can never take a

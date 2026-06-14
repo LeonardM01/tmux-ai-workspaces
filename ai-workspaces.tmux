@@ -18,10 +18,14 @@ case "$existing_right" in
     ;;
 esac
 
+# Ensure the status bar refreshes at least every 2s. Validate the existing value
+# is numeric first — a non-numeric value would make `[ -gt ]` error, and the
+# 2>/dev/null would then silently swallow it and skip the set.
 current_interval=$(tmux show-option -gqv "status-interval")
-if [ -z "$current_interval" ] || [ "$current_interval" -gt 2 ] 2>/dev/null; then
-  tmux set-option -g status-interval 2
-fi
+case "$current_interval" in
+  ''|*[!0-9]*) tmux set-option -g status-interval 2 ;;
+  *) [ "$current_interval" -gt 2 ] && tmux set-option -g status-interval 2 ;;
+esac
 
 # Idempotent: only register the focus-clear hook if it isn't already there.
 if ! tmux show-hooks -g 2>/dev/null | grep -q "clear-state.sh"; then

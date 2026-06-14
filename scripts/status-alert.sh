@@ -11,10 +11,16 @@ esac
 wait_count=0; done_count=0; busy_count=0
 while IFS=$'\t' read -r sess st; do
   [ -z "$sess" ] && continue
-  case "$st" in wait) ((wait_count++));; done) ((done_count++));; busy) ((busy_count++));; esac
+  # Use $((x+1)) not ((x++)): the latter returns non-zero when the result is 0,
+  # which would abort the script the moment anyone enables `set -e`.
+  case "$st" in
+    wait) wait_count=$((wait_count+1)) ;;
+    done) done_count=$((done_count+1)) ;;
+    busy) busy_count=$((busy_count+1)) ;;
+  esac
 done < <(state_aggregate "$CURRENT_SESSION")
 out=""
 [ "$wait_count" -gt 0 ] && out="${out}#[fg=colour226]⚑${wait_count} "
 [ "$done_count" -gt 0 ] && out="${out}#[fg=colour82]●${done_count} "
 [ "$busy_count" -gt 0 ] && out="${out}#[fg=colour244]○${busy_count} "
-printf '%s' "$out"
+printf '%s' "${out% }"
