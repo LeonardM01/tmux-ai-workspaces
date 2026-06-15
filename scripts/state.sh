@@ -101,3 +101,19 @@ state_for_session() {
   done
   echo "$best_state"
 }
+
+# Echo the highest (most recent) epoch recorded for a session across all its
+# panes, or nothing if the session has no state files. Read-only; does not prune.
+state_latest_epoch_for_session() {
+  local target="$1" fpath best=""
+  [ -d "$STATE_DIR" ] || return 0
+  for fpath in "$STATE_DIR"/p*; do
+    [ -f "$fpath" ] || continue
+    local sess st epoch
+    IFS=$'\t' read -r sess st epoch < "$fpath"
+    [ "$sess" = "$target" ] || continue
+    case "$epoch" in ''|*[!0-9]*) continue ;; esac
+    if [ -z "$best" ] || [ "$epoch" -gt "$best" ]; then best="$epoch"; fi
+  done
+  [ -n "$best" ] && printf '%s' "$best"
+}

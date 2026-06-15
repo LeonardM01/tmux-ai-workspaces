@@ -32,6 +32,13 @@ assert_file_absent "remove deletes file" "$STATE_DIR/p11"
 state_write "%20" "proj-c" "busy"; state_write "%21" "proj-c" "done"; state_write "%22" "proj-c" "wait"
 assert_eq "wait beats done beats busy" "wait" "$(state_for_session proj-c)"
 
+state_write "%40" "proj-age" "busy"
+printf '%s\t%s\t%s\n' "proj-age" "busy" "1700000000" > "$STATE_DIR/p40"
+state_write "%41" "proj-age" "wait"
+printf '%s\t%s\t%s\n' "proj-age" "wait" "1700000050" > "$STATE_DIR/p41"
+assert_eq "latest epoch picks max across panes" "1700000050" "$(state_latest_epoch_for_session proj-age)"
+assert_eq "latest epoch empty for unknown session" "" "$(state_latest_epoch_for_session nope)"
+
 state_write "%30" "proj-d" "done"; state_write "%31" "proj-e" "wait"
 out=$(state_aggregate "proj-d")
 assert_eq "aggregate excludes session keeps other" "proj-e	wait" "$(echo "$out" | grep proj-e)"
