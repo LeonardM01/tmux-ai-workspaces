@@ -35,6 +35,7 @@ picker_rows() {
     if [ -n "${TMUX:-}" ]; then
       path=$(tmux display-message -p -t "$sess" '#{pane_current_path}' 2>/dev/null)
     fi
+    path=${path//$'\t'/ }; path=${path//$'\n'/ }
     epoch=$(state_latest_epoch_for_session "$sess")
     age=$(_age_human "$epoch" "$now")
     printf '%s\t%s\t%s\t%s\t%s\n' "$rank" "$sess" "$icon" "$path" "$age"
@@ -51,8 +52,8 @@ if [ "${1:-}" = "--rows" ]; then _sorted_rows; exit 0; fi
 # Interactive entry point — only when executed, never when sourced by the suite.
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   selection=$(_sorted_rows \
-    | fzf --ansi --delimiter='\t' --with-nth=3,4,5 \
-          --bind="ctrl-x:execute-silent(bash $SCRIPT_DIR/picker.sh --kill {2})+reload(bash $SCRIPT_DIR/picker.sh --rows)" \
+    | fzf --delimiter='\t' --with-nth=3,4,5 \
+          --bind="ctrl-x:execute-silent(bash \"$SCRIPT_DIR/picker.sh\" --kill {2})+reload(bash \"$SCRIPT_DIR/picker.sh\" --rows)" \
           --header='enter: switch   ctrl-x: kill')
   [ -z "$selection" ] && exit 0
   target=$(printf '%s' "$selection" | cut -f2)
