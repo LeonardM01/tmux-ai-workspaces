@@ -44,6 +44,20 @@ printf '%s\t%s\t%s\n' "proj-garbage" "busy" "garbage" > "$STATE_DIR/p42"
 printf '%s\t%s\t%s\n' "proj-garbage" "wait" "1700000099" > "$STATE_DIR/p43"
 assert_eq "latest epoch skips non-numeric epoch" "1700000099" "$(state_latest_epoch_for_session proj-garbage)"
 
+source "$SCRIPT_DIR/picker.sh"
+assert_eq "age seconds" "5s" "$(_age_human 1700000000 1700000005)"
+assert_eq "age minutes" "3m" "$(_age_human 1700000000 1700000180)"
+assert_eq "age hours" "2h" "$(_age_human 1700000000 1700007200)"
+assert_eq "age days" "1d" "$(_age_human 1700000000 1700086400)"
+assert_eq "age empty epoch" "-" "$(_age_human "" 1700000005)"
+
+state_write "%50" "proj-row" "wait"
+printf '%s\t%s\t%s\n' "proj-row" "wait" "1700000000" > "$STATE_DIR/p50"
+row=$(picker_rows 1700000005 | awk -F'\t' '$2=="proj-row"')
+assert_eq "row rank for wait" "3" "$(printf '%s' "$row" | cut -f1)"
+assert_eq "row session" "proj-row" "$(printf '%s' "$row" | cut -f2)"
+assert_eq "row age" "5s" "$(printf '%s' "$row" | cut -f5)"
+
 state_write "%30" "proj-d" "done"; state_write "%31" "proj-e" "wait"
 out=$(state_aggregate "proj-d")
 assert_eq "aggregate excludes session keeps other" "proj-e	wait" "$(echo "$out" | grep proj-e)"
