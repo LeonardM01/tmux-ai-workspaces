@@ -39,6 +39,11 @@ printf '%s\t%s\t%s\n' "proj-age" "wait" "1700000050" > "$STATE_DIR/p41"
 assert_eq "latest epoch picks max across panes" "1700000050" "$(state_latest_epoch_for_session proj-age)"
 assert_eq "latest epoch empty for unknown session" "" "$(state_latest_epoch_for_session nope)"
 
+state_write "%42" "proj-garbage" "busy"
+printf '%s\t%s\t%s\n' "proj-garbage" "busy" "garbage" > "$STATE_DIR/p42"
+printf '%s\t%s\t%s\n' "proj-garbage" "wait" "1700000099" > "$STATE_DIR/p43"
+assert_eq "latest epoch skips non-numeric epoch" "1700000099" "$(state_latest_epoch_for_session proj-garbage)"
+
 state_write "%30" "proj-d" "done"; state_write "%31" "proj-e" "wait"
 out=$(state_aggregate "proj-d")
 assert_eq "aggregate excludes session keeps other" "proj-e	wait" "$(echo "$out" | grep proj-e)"
