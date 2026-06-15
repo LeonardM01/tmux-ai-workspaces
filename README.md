@@ -125,6 +125,20 @@ merge by hand.
 | `prefix + Tab` | Toggle the sidebar |
 | `1`–`9` (in sidebar) | Jump to that session |
 | `q` / `Esc` (in sidebar) | Close the sidebar |
+| `prefix + S` | Open the fzf popup picker |
+
+### Popup picker (fzf)
+
+Press `prefix + S` to open a fuzzy picker of all AI sessions in a centered
+popup. Sessions needing attention (`wait`) float to the top. In the picker:
+
+- `enter` — switch to the selected session
+- `ctrl-x` — kill the selected session and refresh the list
+
+The popup requires [`fzf`](https://github.com/junegunn/fzf) on your `PATH`. If
+fzf is missing, pressing the key shows a short install hint instead. The
+sidebar (`prefix + Tab`) and popup are independent views over the same state —
+use whichever you prefer.
 
 ### Status legend
 
@@ -144,6 +158,9 @@ Set these before the plugin line in `tmux.conf`:
 |--------|---------|-------------|
 | `@ai_sidebar_key` | `Tab` | Toggle key, used as `prefix + <key>` |
 | `@ai_sidebar_width` | `24` | Sidebar width in columns |
+| `@ai_popup_key` | `S` | prefix key that opens the fzf popup picker |
+| `@ai_popup_width` | `80%` | popup width (any tmux `display-popup -w` value) |
+| `@ai_popup_height` | `80%` | popup height (any tmux `display-popup -h` value) |
 | `@ai_state_dir` | `$TMPDIR/tmux-ai` | Where per-pane state files live |
 
 ```tmux

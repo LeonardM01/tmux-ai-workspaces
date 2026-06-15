@@ -9,5 +9,5 @@ SIDEBAR_PANE=$(tmux list-panes -s -F '#{pane_id} #{@ai_sidebar}' | awk '$2 == "1
 if [ -n "$SIDEBAR_PANE" ]; then
   safe_kill_sidebar_pane "$SIDEBAR_PANE"
 else
-  tmux split-window -hb -l "$SIDEBAR_WIDTH" "$SCRIPT_DIR/sidebar.sh"
+  tmux split-window -fhb -l "$SIDEBAR_WIDTH" "$SCRIPT_DIR/sidebar.sh"
 fi

@@ -32,6 +32,41 @@ assert_file_absent "remove deletes file" "$STATE_DIR/p11"
 state_write "%20" "proj-c" "busy"; state_write "%21" "proj-c" "done"; state_write "%22" "proj-c" "wait"
 assert_eq "wait beats done beats busy" "wait" "$(state_for_session proj-c)"
 
+state_write "%40" "proj-age" "busy"
+printf '%s\t%s\t%s\n' "proj-age" "busy" "1700000000" > "$STATE_DIR/p40"
+state_write "%41" "proj-age" "wait"
+printf '%s\t%s\t%s\n' "proj-age" "wait" "1700000050" > "$STATE_DIR/p41"
+assert_eq "latest epoch picks max across panes" "1700000050" "$(state_latest_epoch_for_session proj-age)"
+assert_eq "latest epoch empty for unknown session" "" "$(state_latest_epoch_for_session nope)"
+
+state_write "%42" "proj-garbage" "busy"
+printf '%s\t%s\t%s\n' "proj-garbage" "busy" "garbage" > "$STATE_DIR/p42"
+printf '%s\t%s\t%s\n' "proj-garbage" "wait" "1700000099" > "$STATE_DIR/p43"
+assert_eq "latest epoch skips non-numeric epoch" "1700000099" "$(state_latest_epoch_for_session proj-garbage)"
+
+source "$SCRIPT_DIR/picker.sh"
+assert_eq "age seconds" "5s" "$(_age_human 1700000000 1700000005)"
+assert_eq "age minutes" "3m" "$(_age_human 1700000000 1700000180)"
+assert_eq "age hours" "2h" "$(_age_human 1700000000 1700007200)"
+assert_eq "age days" "1d" "$(_age_human 1700000000 1700086400)"
+assert_eq "age empty epoch" "-" "$(_age_human "" 1700000005)"
+
+state_write "%50" "proj-row" "wait"
+printf '%s\t%s\t%s\n' "proj-row" "wait" "1700000000" > "$STATE_DIR/p50"
+row=$(picker_rows 1700000005 | awk -F'\t' '$2=="proj-row"')
+assert_eq "row rank for wait" "3" "$(printf '%s' "$row" | cut -f1)"
+assert_eq "row session" "proj-row" "$(printf '%s' "$row" | cut -f2)"
+assert_eq "row age" "5s" "$(printf '%s' "$row" | cut -f5)"
+
+assert_file_exists "popup.sh exists" "$SCRIPT_DIR/popup.sh"
+assert_eq "popup.sh executable" "yes" "$([ -x "$SCRIPT_DIR/popup.sh" ] && echo yes || echo no)"
+
+if grep -q 'split-window -fhb' "$SCRIPT_DIR/toggle-sidebar.sh"; then echo "PASS: toggle-sidebar spawns full-height (-f)"; PASS_COUNT=$((PASS_COUNT+1)); else echo "FAIL: toggle-sidebar missing -f flag"; FAIL_COUNT=$((FAIL_COUNT+1)); fi
+if grep -q 'split-window -fhb' "$SCRIPT_DIR/jump.sh"; then echo "PASS: jump spawns full-height (-f)"; PASS_COUNT=$((PASS_COUNT+1)); else echo "FAIL: jump missing -f flag"; FAIL_COUNT=$((FAIL_COUNT+1)); fi
+
+if grep -q '@ai_popup_key' "$SCRIPT_DIR/../ai-workspaces.tmux"; then echo "PASS: popup key wired in tmux entry"; PASS_COUNT=$((PASS_COUNT+1)); else echo "FAIL: popup key not wired"; FAIL_COUNT=$((FAIL_COUNT+1)); fi
+if grep -q 'scripts/popup.sh' "$SCRIPT_DIR/../ai-workspaces.tmux"; then echo "PASS: popup.sh bound in tmux entry"; PASS_COUNT=$((PASS_COUNT+1)); else echo "FAIL: popup.sh not bound"; FAIL_COUNT=$((FAIL_COUNT+1)); fi
+
 state_write "%30" "proj-d" "done"; state_write "%31" "proj-e" "wait"
 out=$(state_aggregate "proj-d")
 assert_eq "aggregate excludes session keeps other" "proj-e	wait" "$(echo "$out" | grep proj-e)"
@@ -49,6 +84,12 @@ else
   trap 'tmux -L "$SOCKET" kill-server 2>/dev/null; rm -rf "$TEST_STATE_DIR" "$INT_DIR"' EXIT INT TERM
   tmux -L "$SOCKET" new-session -d -s "$SA"; tmux -L "$SOCKET" new-session -d -s "$SB"
   PANE_A=$(tmux -L "$SOCKET" list-panes -t "$SA" -F '#{pane_id}' | head -1)
+  tmux -L "$SOCKET" new-window -t "$SA" -n geo
+  tmux -L "$SOCKET" split-window -h -t "$SA":geo
+  tmux -L "$SOCKET" select-pane -t "$SA":geo.+
+  LEFTCOL=$(tmux -L "$SOCKET" split-window -fhb -d -t "$SA":geo -P -F '#{pane_left}')
+  assert_eq "full-size left split pins to column 0" "0" "$LEFTCOL"
+  tmux -L "$SOCKET" kill-window -t "$SA":geo
   # prune must KEEP a live pane and DROP a dead one — but state_prune queries the AMBIENT tmux, not -L socket.
   # So this is a best-effort note rather than a hard assertion in v1.
   echo "NOTE: live-server present; prune uses ambient socket (documented limitation)."

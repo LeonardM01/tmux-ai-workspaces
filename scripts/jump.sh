@@ -18,7 +18,7 @@ done
 # user lands in their workspace with the sidebar still visible on the left. The
 # new pane identifies itself from $TMUX_PANE; we capture its id here (-P -F) so
 # we only retire the old sidebar once the replacement actually exists.
-NEW_PANE=$(tmux split-window -hb -d -l "$WIDTH" -t "$TARGET_SESSION" -P -F '#{pane_id}' "$SCRIPT_DIR/sidebar.sh")
+NEW_PANE=$(tmux split-window -fhb -d -l "$WIDTH" -t "$TARGET_SESSION" -P -F '#{pane_id}' "$SCRIPT_DIR/sidebar.sh")
 
 # Move the client to the target session. (No -c client target: single-client use
 # is assumed; with multiple clients this switches the ambiguous "current" one.)
