@@ -64,6 +64,9 @@ assert_eq "popup.sh executable" "yes" "$([ -x "$SCRIPT_DIR/popup.sh" ] && echo y
 if grep -q 'split-window -fhb' "$SCRIPT_DIR/toggle-sidebar.sh"; then echo "PASS: toggle-sidebar spawns full-height (-f)"; PASS_COUNT=$((PASS_COUNT+1)); else echo "FAIL: toggle-sidebar missing -f flag"; FAIL_COUNT=$((FAIL_COUNT+1)); fi
 if grep -q 'split-window -fhb' "$SCRIPT_DIR/jump.sh"; then echo "PASS: jump spawns full-height (-f)"; PASS_COUNT=$((PASS_COUNT+1)); else echo "FAIL: jump missing -f flag"; FAIL_COUNT=$((FAIL_COUNT+1)); fi
 
+if grep -q '@ai_popup_key' "$SCRIPT_DIR/../ai-workspaces.tmux"; then echo "PASS: popup key wired in tmux entry"; PASS_COUNT=$((PASS_COUNT+1)); else echo "FAIL: popup key not wired"; FAIL_COUNT=$((FAIL_COUNT+1)); fi
+if grep -q 'scripts/popup.sh' "$SCRIPT_DIR/../ai-workspaces.tmux"; then echo "PASS: popup.sh bound in tmux entry"; PASS_COUNT=$((PASS_COUNT+1)); else echo "FAIL: popup.sh not bound"; FAIL_COUNT=$((FAIL_COUNT+1)); fi
+
 state_write "%30" "proj-d" "done"; state_write "%31" "proj-e" "wait"
 out=$(state_aggregate "proj-d")
 assert_eq "aggregate excludes session keeps other" "proj-e	wait" "$(echo "$out" | grep proj-e)"

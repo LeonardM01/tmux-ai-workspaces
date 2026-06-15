@@ -3,9 +3,12 @@ CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 sidebar_key=$(tmux show-option -gqv "@ai_sidebar_key"); sidebar_key="${sidebar_key:-Tab}"
 sidebar_width=$(tmux show-option -gqv "@ai_sidebar_width"); sidebar_width="${sidebar_width:-24}"
+popup_key=$(tmux show-option -gqv "@ai_popup_key"); popup_key="${popup_key:-S}"
+# popup width/height are read at runtime by popup.sh; nothing to set here.
 # state_dir option is read by scripts at runtime; nothing to set here.
 
 tmux bind-key "$sidebar_key" run-shell "$CURRENT_DIR/scripts/toggle-sidebar.sh"
+tmux bind-key "$popup_key" run-shell "$CURRENT_DIR/scripts/popup.sh"
 
 existing_right=$(tmux show-option -gv "status-right" 2>/dev/null)
 # Idempotent: only prepend our segment if it isn't already present (this file
