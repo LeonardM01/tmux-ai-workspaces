@@ -43,13 +43,16 @@ $agg
 EOF
 }
 
-if [ "${1:-}" = "--rows" ]; then picker_rows | sort -t$'\t' -k1,1nr; exit 0; fi
+_sorted_rows() { picker_rows "$@" | sort -t$'\t' -k1,1nr; }
+
+if [ "${1:-}" = "--kill" ]; then tmux kill-session -t "$2" 2>/dev/null; exit 0; fi
+if [ "${1:-}" = "--rows" ]; then _sorted_rows; exit 0; fi
 
 # Interactive entry point — only when executed, never when sourced by the suite.
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
-  selection=$(picker_rows | sort -t$'\t' -k1,1nr \
+  selection=$(_sorted_rows \
     | fzf --ansi --delimiter='\t' --with-nth=3,4,5 \
-          --bind="ctrl-x:execute-silent(tmux kill-session -t {2})+reload(bash $SCRIPT_DIR/picker.sh --rows)" \
+          --bind="ctrl-x:execute-silent(bash $SCRIPT_DIR/picker.sh --kill {2})+reload(bash $SCRIPT_DIR/picker.sh --rows)" \
           --header='enter: switch   ctrl-x: kill')
   [ -z "$selection" ] && exit 0
   target=$(printf '%s' "$selection" | cut -f2)
