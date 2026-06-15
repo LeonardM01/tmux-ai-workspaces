@@ -61,6 +61,9 @@ assert_eq "row age" "5s" "$(printf '%s' "$row" | cut -f5)"
 assert_file_exists "popup.sh exists" "$SCRIPT_DIR/popup.sh"
 assert_eq "popup.sh executable" "yes" "$([ -x "$SCRIPT_DIR/popup.sh" ] && echo yes || echo no)"
 
+if grep -q 'split-window -fhb' "$SCRIPT_DIR/toggle-sidebar.sh"; then echo "PASS: toggle-sidebar spawns full-height (-f)"; PASS_COUNT=$((PASS_COUNT+1)); else echo "FAIL: toggle-sidebar missing -f flag"; FAIL_COUNT=$((FAIL_COUNT+1)); fi
+if grep -q 'split-window -fhb' "$SCRIPT_DIR/jump.sh"; then echo "PASS: jump spawns full-height (-f)"; PASS_COUNT=$((PASS_COUNT+1)); else echo "FAIL: jump missing -f flag"; FAIL_COUNT=$((FAIL_COUNT+1)); fi
+
 state_write "%30" "proj-d" "done"; state_write "%31" "proj-e" "wait"
 out=$(state_aggregate "proj-d")
 assert_eq "aggregate excludes session keeps other" "proj-e	wait" "$(echo "$out" | grep proj-e)"
@@ -78,6 +81,12 @@ else
   trap 'tmux -L "$SOCKET" kill-server 2>/dev/null; rm -rf "$TEST_STATE_DIR" "$INT_DIR"' EXIT INT TERM
   tmux -L "$SOCKET" new-session -d -s "$SA"; tmux -L "$SOCKET" new-session -d -s "$SB"
   PANE_A=$(tmux -L "$SOCKET" list-panes -t "$SA" -F '#{pane_id}' | head -1)
+  tmux -L "$SOCKET" new-window -t "$SA" -n geo
+  tmux -L "$SOCKET" split-window -h -t "$SA":geo
+  tmux -L "$SOCKET" select-pane -t "$SA":geo.+
+  LEFTCOL=$(tmux -L "$SOCKET" split-window -fhb -d -t "$SA":geo -P -F '#{pane_left}')
+  assert_eq "full-size left split pins to column 0" "0" "$LEFTCOL"
+  tmux -L "$SOCKET" kill-window -t "$SA":geo
   # prune must KEEP a live pane and DROP a dead one — but state_prune queries the AMBIENT tmux, not -L socket.
   # So this is a best-effort note rather than a hard assertion in v1.
   echo "NOTE: live-server present; prune uses ambient socket (documented limitation)."
