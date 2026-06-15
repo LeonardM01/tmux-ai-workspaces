@@ -58,6 +58,9 @@ assert_eq "row rank for wait" "3" "$(printf '%s' "$row" | cut -f1)"
 assert_eq "row session" "proj-row" "$(printf '%s' "$row" | cut -f2)"
 assert_eq "row age" "5s" "$(printf '%s' "$row" | cut -f5)"
 
+assert_file_exists "popup.sh exists" "$SCRIPT_DIR/popup.sh"
+assert_eq "popup.sh executable" "yes" "$([ -x "$SCRIPT_DIR/popup.sh" ] && echo yes || echo no)"
+
 state_write "%30" "proj-d" "done"; state_write "%31" "proj-e" "wait"
 out=$(state_aggregate "proj-d")
 assert_eq "aggregate excludes session keeps other" "proj-e	wait" "$(echo "$out" | grep proj-e)"
